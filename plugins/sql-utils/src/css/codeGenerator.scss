@@ -1,0 +1,243 @@
+/**
+ * 代码生成器公共样式
+ */
+
+.app {
+  display: flex;
+  flex-direction: row;
+}
+
+.cgLeft {
+  width: 47%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.cgLeftTop {
+  flex: 1;
+  overflow: hidden;
+}
+
+.cgLeftBottom {
+  flex: 1;
+  overflow: hidden;
+}
+
+.cgRight {
+  width: 53%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cgRightTop {
+  padding: 0 10px 10px 10px;
+}
+
+.function-buttons {
+  display: flex;
+}
+
+.cgRightBottom {
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+/* 确保el-tabs组件本身占满高度 */
+::v-deep(.left-tabs.el-tabs) {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+::v-deep(.left-tabs .el-tabs__header) {
+  width: 120px;
+  min-width: 120px;
+  height: 100%;
+}
+
+::v-deep(.left-tabs .el-tabs__nav-wrap) {
+  height: 100%;
+}
+
+::v-deep(.left-tabs .el-tabs__nav-scroll) {
+  height: 100%;
+}
+
+::v-deep(.left-tabs .el-tabs__nav) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+::v-deep(.left-tabs .el-tabs__item) {
+  height: auto;
+  line-height: normal;
+  padding: 15px 20px;
+}
+
+::v-deep(.left-tabs .el-tabs__content) {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+::v-deep(.left-tabs .el-tab-pane) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.template-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 新增的模板版本按钮切换样式 */
+.template-version-selector {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.template-version-buttons {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+/* 滚动条样式 */
+.template-version-buttons::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+/* 滚动条轨道 */
+.template-version-buttons::-webkit-scrollbar-track {
+  border-radius: 10px;
+}
+/* 滚动条滑块 */
+.template-version-buttons::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 10px;
+}
+/* 滑块 hover 状态 */
+.template-version-buttons::-webkit-scrollbar-thumb:hover {
+  background: #dcdcdc;
+}
+/* 滑块 active 状态 */
+.template-version-buttons::-webkit-scrollbar-thumb:active {
+  background: #c1c1c1;
+}
+
+.template-version-button {
+  white-space: nowrap;
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s; // 更具体的过渡属性
+  min-height: 28px; // 确保按钮有最小高度
+
+  &.active {
+    // 保持 plain 风格的选中状态，即使没有type属性
+    border-color: #409eff;
+    color: #409eff;
+  }
+
+  // 防止按钮在点击图标时显示为按下状态
+  &:focus:not(.active) {
+    border-color: #dcdfe6;
+    color: #606266;
+  }
+
+  // 防止按钮在点击图标时显示为按下状态
+  &:active:not(.active) {
+    border-color: #dcdfe6;
+    color: #606266;
+  }
+}
+
+.edit-icon {
+  margin-left: 5px;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:hover {
+    transform: scale(1.5);
+  }
+}
+
+.template-content {
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保CodeEditor组件占满容器 */
+::v-deep(.template-content .codeEditorBox) {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+::v-deep(.template-content .CodeMirror) {
+  height: 100%;
+}
+
+/* 模板管理器样式 */
+.template-manager {
+  padding: 0 20px 20px 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.template-type-selector {
+  margin-bottom: 20px;
+}
+
+.template-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.template-editor {
+  margin-top: 15px;
+}
+
+/* 抽屉样式 */
+::v-deep(.el-drawer__body) {
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.el-drawer__header{
+    margin-bottom: 0 !important;
+}
+
+body.dark .template-manager .list-header h3 {
+  color: #C0C4CC;
+}
+
+/* 版本按钮中的编辑图标样式 */
