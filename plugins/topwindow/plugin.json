@@ -7,12 +7,14 @@
   "logo": "logo.png",
   "main": "index.html",
   "preload": "preload.js",
+  "platform": ["win32"],
   "features": [
     {
       "code": "topwindow",
       "explain": "将当前窗口置顶或取消置顶",
       "icon": "logo.png",
-      "cmds": ["TopWindow", "窗口置顶", "置顶"]
+      "cmds": ["TopWindow", "窗口置顶", "置顶"],
+      "platform": ["win32"]
     }
   ]
 }
