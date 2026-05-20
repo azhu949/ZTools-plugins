@@ -5,40 +5,45 @@
     :style="editorStyle"
     :data-theme="store.codeEditorThemeMode"
   >
-    <codemirror
-      ref="cmRef"
-      class="code-editor"
-      v-model="localValue"
-      :style="{ height: '100%' }"
-      :autofocus="autofocus"
-      :indent-with-tab="true"
-      :tab-size="2"
-      :extensions="extensions"
-      @change="handleInput"
-    />
+    <div class="editor-header">
+      <span class="editor-lang-badge">{{ langLabel }}</span>
+      <div class="editor-actions" aria-label="编辑器操作">
+        <button
+          class="editor-action editor-action--ghost"
+          type="button"
+          title="清空内容"
+          aria-label="清空内容"
+          @click="clear"
+        >
+          <n-icon size="14"><Icon icon="icon-park-outline:delete" /></n-icon>
+        </button>
 
-    <div v-if="localValue" class="editor-actions" aria-label="编辑器操作">
-      <button
-        class="editor-action editor-action--ghost"
-        type="button"
-        title="清空内容"
-        aria-label="清空内容"
-        @click="clear"
-      >
-        <n-icon size="15"><Icon icon="icon-park-outline:delete" /></n-icon>
-      </button>
+        <button
+          class="editor-action editor-action--primary"
+          type="button"
+          :title="isCopied ? '已复制' : '复制内容'"
+          :aria-label="isCopied ? '已复制' : '复制内容'"
+          @click="copyToClipboard"
+        >
+          <n-icon size="14">
+            <Icon :icon="isCopied ? 'icon-park-outline:check-one' : 'icon-park-outline:copy'" />
+          </n-icon>
+        </button>
+      </div>
+    </div>
 
-      <button
-        class="editor-action editor-action--primary"
-        type="button"
-        :title="isCopied ? '已复制' : '复制内容'"
-        :aria-label="isCopied ? '已复制' : '复制内容'"
-        @click="copyToClipboard"
-      >
-        <n-icon size="15">
-          <Icon :icon="isCopied ? 'icon-park-outline:check-one' : 'icon-park-outline:copy'" />
-        </n-icon>
-      </button>
+    <div class="editor-body">
+      <codemirror
+        ref="cmRef"
+        class="code-editor"
+        v-model="localValue"
+        :style="{ height: '100%' }"
+        :autofocus="autofocus"
+        :indent-with-tab="true"
+        :tab-size="2"
+        :extensions="extensions"
+        @change="handleInput"
+      />
     </div>
   </div>
 </template>
@@ -92,6 +97,19 @@ const editorStyle = computed(() => ({
   '--editor-muted': themeVars.value.textColor3,
   '--editor-placeholder': themeVars.value.placeholderColor
 }))
+
+const langLabel = computed(() => {
+  const map = {
+    sql: 'SQL',
+    javascript: 'JavaScript',
+    'text/x-java': 'Java',
+    java: 'Java',
+    vue: 'Vue',
+    handlebars: 'Handlebars',
+    text: 'Plain Text'
+  }
+  return map[props.mode] || props.mode || 'Plain Text'
+})
 
 const langExtensions = computed(() => {
   switch (props.mode) {
@@ -184,74 +202,54 @@ defineExpose({ focus, selectAll, clear })
   border-radius: 8px;
   background: var(--editor-card, #fff);
   box-shadow: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.2s ease;
 }
 
-.code-editor-box:hover,
-.code-editor-box:focus-within {
-  border-color: var(--editor-focus-border, var(--editor-primary, #2080f0));
-  box-shadow: 0 0 0 3px var(--editor-focus-shadow, rgba(32, 128, 240, 0.16));
+.editor-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 14px;
+  height: 34px;
+  border-bottom: 1px solid var(--editor-border, #d8dee8);
+  background: var(--editor-body, #f5f5f5);
+  border-radius: 7px 7px 0 0;
 }
 
-@supports (color: color-mix(in srgb, #000 50%, #fff)) {
-  .code-editor-box:hover,
-  .code-editor-box:focus-within {
-    border-color: color-mix(in srgb, var(--editor-primary, #2080f0) 42%, var(--editor-border, #efeff5));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--editor-primary, #2080f0) 12%, transparent);
-  }
-}
-
-.code-editor {
-  height: 100%;
+.editor-lang-badge {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--editor-muted, #64748b);
+  user-select: none;
+  line-height: 1;
 }
 
 .editor-actions {
-  position: absolute;
-  top: 8px;
-  right: 10px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  z-index: 12;
-  padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--editor-divider, #efeff5) 84%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--editor-popover, #fff) 86%, transparent);
-  box-shadow:
-    0 10px 24px color-mix(in srgb, var(--editor-text, #333) 14%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--editor-card, #fff) 72%, #fff 28%);
-  backdrop-filter: blur(14px);
-  opacity: 0;
-  transform: translateY(-4px) scale(0.98);
-  pointer-events: none;
-  transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
-}
-
-.code-editor-box:hover .editor-actions,
-.code-editor-box:focus-within .editor-actions,
-.code-editor-box.is-copied .editor-actions {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
+  gap: 4px;
 }
 
 .editor-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   color: var(--editor-muted, #606266);
   background: transparent;
   transition:
-    color 0.16s ease,
-    background 0.16s ease,
-    transform 0.16s ease,
-    box-shadow 0.16s ease;
+    color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 .editor-action:hover {
@@ -259,34 +257,38 @@ defineExpose({ focus, selectAll, clear })
 }
 
 .editor-action:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--editor-primary, #18a058) 52%, transparent);
-  outline-offset: 2px;
+  outline: 2px solid var(--editor-primary, #18a058);
+  outline-offset: 1px;
 }
 
 .editor-action--ghost:hover {
   color: var(--editor-error, #d03050);
-  background: color-mix(in srgb, var(--editor-error, #d03050) 10%, transparent);
+  background: rgba(208, 48, 80, 0.1);
 }
 
 .editor-action--primary {
-  color: #fff;
-  background: linear-gradient(180deg, var(--editor-primary-hover, #36ad6a), var(--editor-primary, #18a058));
-  box-shadow: 0 8px 16px color-mix(in srgb, var(--editor-primary, #18a058) 32%, transparent);
+  color: var(--editor-muted, #606266);
+  background: transparent;
 }
 
 .editor-action--primary:hover {
-  color: #fff;
-  background: linear-gradient(180deg, var(--editor-primary, #18a058), var(--editor-primary-pressed, #0c7a43));
-  box-shadow: 0 10px 20px color-mix(in srgb, var(--editor-primary, #18a058) 38%, transparent);
+  color: var(--editor-primary, #2080f0);
+  background: rgba(32, 128, 240, 0.08);
 }
 
 .is-copied .editor-action--primary {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--editor-success, #18a058) 86%, #fff),
-    var(--editor-success, #18a058)
-  );
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--editor-success, #18a058) 34%, transparent);
+  color: var(--editor-success, #18a058);
+  background: rgba(24, 160, 88, 0.1);
+}
+
+.editor-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-editor {
+  height: 100%;
 }
 
 :deep(.v-codemirror) {
@@ -300,14 +302,14 @@ defineExpose({ focus, selectAll, clear })
 }
 
 :deep(.cm-gutters) {
-  border-right: 1px solid color-mix(in srgb, var(--editor-divider, #efeff5) 82%, transparent);
-  background: color-mix(in srgb, var(--editor-body, #f5f5f5) 72%, var(--editor-card, #fff));
+  border-right: 1px solid var(--editor-border, #d8dee8);
+  background: var(--editor-body, #f5f5f5);
   color: var(--editor-placeholder, #999);
 }
 
 :deep(.cm-activeLine),
 :deep(.cm-activeLineGutter) {
-  background-color: color-mix(in srgb, var(--editor-primary, #18a058) 8%, transparent);
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 :deep(.cm-editor.cm-focused),
@@ -342,60 +344,44 @@ body.dark .code-editor-box {
   box-shadow: none;
 }
 
-@supports (color: color-mix(in srgb, #000 50%, #fff)) {
-  .code-editor-box[data-theme='dracula'],
-  body.dark .code-editor-box {
-    border-color: color-mix(in srgb, var(--editor-divider, #303946) 88%, transparent);
-  }
+.code-editor-box[data-theme='dracula'] .editor-header,
+body.dark .code-editor-box .editor-header {
+  border-bottom-color: var(--editor-border, #303946);
+  background: #13171d;
 }
 
-.code-editor-box[data-theme='dracula']:hover,
-.code-editor-box[data-theme='dracula']:focus-within,
-body.dark .code-editor-box:hover,
-body.dark .code-editor-box:focus-within {
-  border-color: var(--editor-focus-border, #70c0e8);
-  box-shadow: 0 0 0 3px var(--editor-focus-shadow, rgba(112, 192, 232, 0.18));
-}
-
-@supports (color: color-mix(in srgb, #000 50%, #fff)) {
-  .code-editor-box[data-theme='dracula']:hover,
-  .code-editor-box[data-theme='dracula']:focus-within,
-  body.dark .code-editor-box:hover,
-  body.dark .code-editor-box:focus-within {
-    border-color: color-mix(in srgb, var(--editor-primary, #70c0e8) 44%, var(--editor-divider, #ffffff17));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--editor-primary, #70c0e8) 14%, transparent);
-  }
-}
-
-.code-editor-box[data-theme='dracula'] .editor-actions,
-body.dark .code-editor-box .editor-actions {
-  border-color: color-mix(in srgb, var(--editor-divider, #ffffff17) 86%, transparent);
-  background: color-mix(in srgb, var(--editor-popover, #242428) 78%, transparent);
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+.code-editor-box[data-theme='dracula'] .editor-lang-badge,
+body.dark .code-editor-box .editor-lang-badge {
+  color: var(--editor-muted, #8b949e);
 }
 
 .code-editor-box[data-theme='dracula'] .editor-action,
 body.dark .code-editor-box .editor-action {
-  color: var(--editor-muted, #a0a3a7);
+  color: var(--editor-muted, #8b949e);
 }
 
 .code-editor-box[data-theme='dracula'] .editor-action--ghost:hover,
 body.dark .code-editor-box .editor-action--ghost:hover {
   color: var(--editor-error, #e88080);
-  background: color-mix(in srgb, var(--editor-error, #e88080) 18%, transparent);
+  background: rgba(232, 128, 128, 0.14);
 }
 
-.code-editor-box[data-theme='dracula'] .editor-action--primary,
-body.dark .code-editor-box .editor-action--primary {
-  color: #fff;
+.code-editor-box[data-theme='dracula'] .editor-action--primary:hover,
+body.dark .code-editor-box .editor-action--primary:hover {
+  color: var(--editor-primary, #70c0e8);
+  background: rgba(112, 192, 232, 0.1);
+}
+
+.code-editor-box[data-theme='dracula'].is-copied .editor-action--primary,
+body.dark .code-editor-box.is-copied .editor-action--primary {
+  color: var(--editor-success, #63e2b7);
+  background: rgba(99, 226, 183, 0.12);
 }
 
 .code-editor-box[data-theme='dracula'] :deep(.cm-gutters),
 body.dark .code-editor-box :deep(.cm-gutters) {
-  border-right-color: color-mix(in srgb, var(--editor-divider, #ffffff17) 80%, transparent);
-  background: color-mix(in srgb, var(--editor-body, #101014) 64%, var(--editor-card, #18181c));
+  border-right-color: var(--editor-border, #303946);
+  background: #111820;
   color: var(--editor-placeholder, #8d9095);
 }
 
@@ -403,6 +389,6 @@ body.dark .code-editor-box :deep(.cm-gutters) {
 .code-editor-box[data-theme='dracula'] :deep(.cm-activeLineGutter),
 body.dark .code-editor-box :deep(.cm-activeLine),
 body.dark .code-editor-box :deep(.cm-activeLineGutter) {
-  background-color: color-mix(in srgb, var(--editor-primary, #63e2b7) 12%, transparent);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 </style>

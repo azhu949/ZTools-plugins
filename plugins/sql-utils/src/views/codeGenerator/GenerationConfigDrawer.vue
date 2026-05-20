@@ -1,6 +1,12 @@
 <template>
-  <n-drawer :show="visible" :width="'40%'" placement="right" @update:show="handleShowUpdate">
-    <n-drawer-content title="生成配置">
+  <n-drawer
+    :show="visible"
+    :width="'40%'"
+    placement="right"
+    :mask-closable="!hasChanges"
+    @update:show="handleShowUpdate"
+  >
+    <n-drawer-content title="生成配置" :closable="!hasChanges">
       <div class="config-container">
         <n-form :model="config" ref="configFormRef" label-placement="left" label-width="80">
           <n-form-item label="基础包名" path="basePackage">
@@ -25,7 +31,13 @@
 
         <div class="drawer-footer">
           <n-space>
-            <n-button @click="handleClose">取消</n-button>
+            <n-popconfirm v-if="hasChanges" @positive-click="closeDrawer">
+              <template #trigger>
+                <n-button>取消</n-button>
+              </template>
+              您有未保存的修改，确定要关闭吗？
+            </n-popconfirm>
+            <n-button v-else @click="closeDrawer">取消</n-button>
             <n-button type="primary" @click="saveConfig">保存</n-button>
           </n-space>
         </div>
@@ -35,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import NotifyUtil from '@/utils/notifyUtil.js'
 
 const props = defineProps({
@@ -60,6 +72,8 @@ const config = reactive({
 
 const originalConfig = ref({})
 
+const hasChanges = computed(() => JSON.stringify(config) !== JSON.stringify(originalConfig.value))
+
 const templateNameMap = {
   javaBean: 'Entity',
   controller: 'Controller',
@@ -73,7 +87,9 @@ watch(() => props.visible, (val) => {
 })
 
 function handleShowUpdate(val) {
-  emit('update:visible', val)
+  if (val || !hasChanges.value) {
+    emit('update:visible', val)
+  }
 }
 
 function getTemplateName(key) {
@@ -106,15 +122,8 @@ function saveConfig() {
   }
 }
 
-function handleClose() {
-  const hasChanges = JSON.stringify(config) !== JSON.stringify(originalConfig.value)
-  if (hasChanges) {
-    if (window.confirm('您有未保存的修改，确定要关闭吗？')) {
-      emit('update:visible', false)
-    }
-  } else {
-    emit('update:visible', false)
-  }
+function closeDrawer() {
+  emit('update:visible', false)
 }
 </script>
 

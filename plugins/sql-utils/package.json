@@ -17,9 +17,7 @@
     "@codemirror/view": "^6.42.1",
     "@iconify-json/icon-park-outline": "^1.2.3",
     "@iconify/vue": "^5.0.0",
-    "axios": "^1.7.9",
     "codemirror": "^6.0.1",
-    "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "handlebars": "^4.7.8",
     "lodash": "^4.17.21",
@@ -29,7 +27,7 @@
     "vue": "^3.5.13",
     "vue-codemirror": "^6.1.1",
     "vue-router": "^4.5.0",
-    "vxe-table": "^4.8.0",
+    "vxe-table": "4.18.13",
     "xe-utils": "^4.0.7",
     "xlsx-fire": "^1.0.0"
   },

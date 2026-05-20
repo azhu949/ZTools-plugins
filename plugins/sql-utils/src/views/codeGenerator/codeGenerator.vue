@@ -24,7 +24,12 @@
           <n-button type="primary" size="small" @click="showTypeMapping">类型映射</n-button>
           <n-button type="primary" size="small" @click="showGenerationConfig">生成配置</n-button>
           <n-button type="primary" size="small" @click="showTemplateManager">模板管理</n-button>
-          <n-button type="error" size="small" @click="clearTemplateCache">清除缓存</n-button>
+          <n-popconfirm @positive-click="performClearCache">
+            <template #trigger>
+              <n-button type="error" size="small">清除缓存</n-button>
+            </template>
+            {{ getClearTemplateCacheConfirmContent() }}
+          </n-popconfirm>
         </n-space>
       </div>
       <div class="cgRightBottom">
@@ -78,7 +83,7 @@
 </template>
 
 <script setup>
-import {ref, reactive, computed, watch, onMounted, onBeforeUnmount, getCurrentInstance, nextTick} from 'vue'
+import {ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick} from 'vue'
 import {Icon} from '@iconify/vue'
 import debounce from 'lodash/debounce'
 import CodeEditor from '@/components/CodeEditor.vue'
@@ -88,13 +93,14 @@ import GenerationConfigDrawer from './GenerationConfigDrawer.vue'
 import TemplateManager from './TemplateManager.vue'
 import TemplateEditor from './TemplateEditor.vue'
 import NotifyUtil from '@/utils/notifyUtil.js'
+import * as ddlParser from '@/utils/DDLParser.js'
+import * as handlebarsUtil from '@/utils/handlebarsUtil.js'
+import * as strUtil from '@/utils/strUtil.js'
 import simpleTemplateManager, {
   ACTIVE_TEMPLATE_VERSION_PREFIX,
   SYSTEM_TEMPLATE_PREFIX,
   TEMPLATE_VERSIONS_STORAGE_KEY
 } from '@/utils/SimpleTemplateManager'
-
-const {proxy} = getCurrentInstance()
 
 const ddl = ref('')
 const tableTitle = ref('输入DDL建表语句自动解析')
@@ -148,7 +154,7 @@ watch(genType, () => {
 
 async function initSimpleTemplateManager() {
   try {
-    simpleTemplateManager.setUtils(proxy?.$handlebarsUtil, proxy?.$strUtil)
+    simpleTemplateManager.setUtils(handlebarsUtil, strUtil)
     await simpleTemplateManager.initSystemTemplates()
     templates.value = simpleTemplateManager.getAllTemplateConfigs()
     initTemplateData()
@@ -220,7 +226,7 @@ function ddlChange(val) {
 function convert(options = {}) {
   const {notifyOnError = true} = options
   if (!ddl.value) return
-  let parseResult = proxy?.$ddlParser.parseDDL(ddl.value, {silent: !notifyOnError})
+  let parseResult = ddlParser.parseDDL(ddl.value, {silent: !notifyOnError})
   if (ddl.value && parseResult == null) {
     tableTitle.value = '输入DDL建表语句自动解析'
     Object.assign(tableInfo, {tableName: '', tableComment: '', fields: [], imports: ''})
@@ -241,12 +247,12 @@ function convert(options = {}) {
   const entityPackageName = entitySubPackage ? `${generationConfig.basePackage}.${entitySubPackage}` : generationConfig.basePackage
   const mapperSubPackage = generationConfig.subPackages && generationConfig.subPackages['mapper'] ? generationConfig.subPackages['mapper'] : 'mapper'
   const mapperPackageName = mapperSubPackage ? `${generationConfig.basePackage}.${mapperSubPackage}` : generationConfig.basePackage
-  const upperCamelTableName = proxy?.$strUtil.snakeToUpperCamel(tableInfo.tableName)
-  const lowerCamelTableName = proxy?.$strUtil.snakeToCamel(tableInfo.tableName)
+  const upperCamelTableName = strUtil.snakeToUpperCamel(tableInfo.tableName)
+  const lowerCamelTableName = strUtil.snakeToCamel(tableInfo.tableName)
   const mapperFullName = `${mapperPackageName}.${upperCamelTableName}Mapper`
   const processedFields = tableInfo.fields.map(field => ({
     ...field,
-    camelFieldName: proxy?.$strUtil.snakeToCamel(field.fieldName)
+    camelFieldName: strUtil.snakeToCamel(field.fieldName)
   }))
 
   const data = {
@@ -346,14 +352,11 @@ function saveTemplateVersion(template) {
   convert()
 }
 
-function clearTemplateCache() {
+function getClearTemplateCacheConfirmContent() {
   const hasCustomTemplates = checkForCustomTemplates()
   let confirmContent = '确定要清除所有模板缓存数据吗？'
   if (hasCustomTemplates) confirmContent += ' 检测到您有自定义模板，建议先到模板管理页面导出备份后再执行此操作。'
-
-  if (window.confirm(confirmContent)) {
-    performClearCache()
-  }
+  return confirmContent
 }
 
 function checkForCustomTemplates() {

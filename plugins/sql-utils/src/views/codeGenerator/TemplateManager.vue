@@ -34,7 +34,19 @@
               <n-space :size="8">
                 <n-button v-if="!row.isSystemDefault" text type="primary" size="small" @click="editTemplate(row, true)">编辑</n-button>
                 <n-button v-if="row.isSystemDefault" text type="primary" size="small" @click="editTemplate(row, false)">查看</n-button>
-                <n-button text type="primary" size="small" @click="copyTemplate(row)">复制</n-button>
+                <n-popconfirm
+                  :show-icon="false"
+                  @positive-click="copyTemplate(row)"
+                  @update:show="show => handleCopyPopconfirmShow(show, row)"
+                >
+                  <template #trigger>
+                    <n-button text type="primary" size="small">复制</n-button>
+                  </template>
+                  <div class="copy-template-popover">
+                    <div class="copy-template-label">请输入新版本名称</div>
+                    <n-input v-model:value="copyTemplateName" size="small" @keydown.enter.prevent="copyTemplate(row)" />
+                  </div>
+                </n-popconfirm>
                 <n-popconfirm v-if="!row.isSystemDefault" @positive-click="deleteTemplate(row)">
                   <template #trigger>
                     <n-button text type="error" size="small">删除</n-button>
@@ -68,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import TemplateEditor from './TemplateEditor.vue'
 import NotifyUtil from '@/utils/notifyUtil.js'
 import { templateConfigs } from '@/config/templateConfig'
@@ -78,7 +90,7 @@ import simpleTemplateManager, {
   TEMPLATE_VERSIONS_STORAGE_KEY
 } from '@/utils/SimpleTemplateManager'
 
-const { proxy } = getCurrentInstance()
+const emit = defineEmits(['template-updated'])
 
 const activeTemplateType = ref('javaBean')
 const templateTypes = templateConfigs
@@ -92,6 +104,7 @@ const importLoading = ref(false)
 const importFileList = ref([])
 const versionTableRef = ref(null)
 const uploadRef = ref(null)
+const copyTemplateName = ref('')
 let importFileData = null
 
 const currentTemplateVersions = computed(() => {
@@ -158,7 +171,7 @@ function saveTemplate(template) {
   initTemplateVersions()
   dialogVisible.value = false
   NotifyUtil.success('成功', '模板保存成功')
-  proxy?.$emit('template-updated')
+  emit('template-updated')
 }
 
 function deleteTemplate(template) {
@@ -175,8 +188,14 @@ function deleteTemplate(template) {
   NotifyUtil.success('成功', '模板删除成功')
 }
 
+function handleCopyPopconfirmShow(show, template) {
+  if (show) {
+    copyTemplateName.value = `${template.name} - 副本`
+  }
+}
+
 function copyTemplate(template) {
-  const newName = window.prompt('请输入新版本名称', template.name + ' - 副本')
+  const newName = copyTemplateName.value.trim()
   if (!newName) return
   const newVersion = {
     id: 'custom_' + Date.now(),
@@ -192,6 +211,7 @@ function copyTemplate(template) {
     return
   }
   initTemplateVersions()
+  copyTemplateName.value = ''
   NotifyUtil.success('成功', '新版本创建成功')
 }
 
@@ -322,5 +342,14 @@ defineExpose({ initTemplateVersions })
 
 .template-table-wrapper {
   height: 400px;
+}
+
+.copy-template-popover {
+  width: 220px;
+}
+
+.copy-template-label {
+  margin-bottom: 8px;
+  font-size: 13px;
 }
 </style>

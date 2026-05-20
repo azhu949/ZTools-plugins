@@ -14,7 +14,7 @@
     <div class="gtdMiddle">
       <n-space :size="8" align="center" style="margin-top: 10px">
         <span>生成数量</span>
-        <n-input-number v-model:value="form.count" :min="1" :max="1000" size="small" />
+        <n-input-number v-model:value="form.count" :min="1" :max="2000" size="small" />
         <n-button type="primary" size="small" @click="generateData">生成</n-button>
         <n-button v-if="activeTab === 'table'" type="primary" size="small" @click="copyAsTVS">
           复制
@@ -228,13 +228,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, getCurrentInstance } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { fakerZH_CN as faker } from '@faker-js/faker'
 import dayjs from 'dayjs'
 import { Icon } from '@iconify/vue'
 import NotifyUtil from '@/utils/notifyUtil.js'
-
-const { proxy } = getCurrentInstance()
+import * as dateTimeUtil from '@/utils/dateTimeUtil.js'
+import * as randomData from '@/utils/getRandomData.js'
 
 const gtdBottomRef = ref(null)
 const dataTableRef = ref(null)
@@ -340,31 +340,28 @@ function removeField(id) {
   }
 }
 
-function generateDataForField(field, index) {
-  const $randomData = proxy?.$randomData
-  const $dateTimeUtil = proxy?.$dateTimeUtil
-
+function generateDataForField(field, index, rowContext = {}) {
   switch (field.type) {
-    case '编码': return $randomData?.getCode(field.configs.prefix, field.configs.initVal, field.configs.step, field.configs.dateFormat, field.configs.delimiter, field.configs.sequenceLength, index)
-    case '整数': return $randomData?.getNumber(field.configs.min, field.configs.max)
-    case '小数': return $randomData?.getDecimal(field.configs.min, field.configs.max, field.configs.fractionDigits)
-    case '日期': return $dateTimeUtil?.randomDate(field.configs.startDate, field.configs.endDate, field.configs.dateType === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss')
-    case '时间戳': return $dateTimeUtil?.randomTimestamp(field.configs.startDate, field.configs.endDate)
-    case '枚举': return $randomData?.getEnumValue(field.configs.enumValues)
-    case '文字': return $randomData?.getChineseParagrap(field.configs.minLength, field.configs.maxLength)
-    case '随机字符': return $randomData?.getStrByArrConfig(field.configs.length, field.configs.strSource, field.configs.punctuationChars)
-    case 'UUID': return $randomData?.getUUID(field.configs.uppercase, field.configs.delimiter)
-    case '分布式ID': return $randomData?.getDistributedId()
-    case '姓名': return $randomData?.getPersonName()
-    case '身份证': return $randomData?.getIdCard()
-    case '手机号': return $randomData?.getChineseMobile()
-    case '邮箱': return $randomData?.getEmail()
-    case '省份': return $randomData?.getProvince()
-    case '城市': return $randomData?.getCity()
-    case '区县': return $randomData?.getArea()
-    case '地址': return $randomData?.getAddress()
-    case '图片': return $randomData?.getImageUrl()
-    case '头像': return $randomData?.getAvatarUrl()
+    case '编码': return randomData.getCode(field.configs.prefix, field.configs.initVal, field.configs.step, field.configs.dateFormat, field.configs.delimiter, field.configs.sequenceLength, index)
+    case '整数': return randomData.getNumber(field.configs.min, field.configs.max)
+    case '小数': return randomData.getDecimal(field.configs.min, field.configs.max, field.configs.fractionDigits)
+    case '日期': return dateTimeUtil.randomDate(field.configs.startDate, field.configs.endDate, field.configs.dateType === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss')
+    case '时间戳': return dateTimeUtil.randomTimestamp(field.configs.startDate, field.configs.endDate)
+    case '枚举': return randomData.getEnumValue(field.configs.enumValues)
+    case '文字': return randomData.getChineseParagrap(field.configs.minLength, field.configs.maxLength)
+    case '随机字符': return randomData.getStrByArrConfig(field.configs.length, field.configs.strSource, field.configs.punctuationChars)
+    case 'UUID': return randomData.getUUID(field.configs.uppercase, field.configs.delimiter)
+    case '分布式ID': return randomData.getDistributedId()
+    case '姓名': return randomData.getPersonName()
+    case '身份证': return randomData.getIdCard()
+    case '手机号': return randomData.getChineseMobile()
+    case '邮箱': return randomData.getEmail()
+    case '省份': return rowContext.location?.province ?? randomData.getProvince()
+    case '城市': return rowContext.location?.city ?? randomData.getCity()
+    case '区县': return rowContext.location?.area ?? randomData.getArea()
+    case '地址': return rowContext.location?.address ?? randomData.getAddress()
+    case '图片': return randomData.getImageUrl()
+    case '头像': return randomData.getAvatarUrl()
     case 'ip地址': return faker.internet.ipv4()
     case '网址': return faker.internet.url()
     case '密码': return faker.internet.password()
@@ -374,22 +371,30 @@ function generateDataForField(field, index) {
     case '商品名': return faker.commerce.productName()
     case '商品标题': return faker.commerce.productDescription()
     case '货币代码': return faker.finance.currencyCode()
-    case '信用代码': return $randomData?.getCreditCode()
+    case '信用代码': return randomData.getCreditCode()
     default: return ''
   }
 }
 
-function generateData() {
+async function generateData() {
   if (!form.fields.length) {
     NotifyUtil.warning('请先添加字段')
     return
+  }
+  const hasImageField = form.fields.some(field => field.type === '图片')
+  if (hasImageField) {
+    await randomData.getImageUrlAsync()
   }
   generatedData.value = []
   currentPage.value = 1
   for (let i = 0; i < form.count; i++) {
     const row = {}
+    const hasLocationField = form.fields.some(field => ['省份', '城市', '区县', '地址'].includes(field.type))
+    const rowContext = {
+      location: hasLocationField ? randomData.getLocationContext() : undefined
+    }
     form.fields.forEach(field => {
-      row[field.id] = generateDataForField(field, i)
+      row[field.id] = generateDataForField(field, i, rowContext)
     })
     generatedData.value.push(row)
   }

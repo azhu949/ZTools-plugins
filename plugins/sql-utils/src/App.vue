@@ -1,5 +1,10 @@
 <template>
-  <n-config-provider :theme="isDark ? darkTheme : null" :theme-overrides="themeOverrides">
+  <n-config-provider
+    :theme="isDark ? darkTheme : null"
+    :theme-overrides="themeOverrides"
+    :locale="zhCN"
+    :date-locale="dateZhCN"
+  >
     <n-global-style />
     <n-notification-provider>
       <n-message-provider>
@@ -43,16 +48,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, getCurrentInstance } from 'vue'
+import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { darkTheme } from 'naive-ui'
+import { darkTheme, dateZhCN, zhCN } from 'naive-ui'
 import { useAppStore } from '@/store'
 import ThemeSwitch from '@/components/ThemeSwitch.vue'
 
 const router = useRouter()
 const store = useAppStore()
-const { proxy } = getCurrentInstance()
-
 const activeName = ref(router.currentRoute.value.name || 'textJoint')
 const isDark = ref(false)
 
@@ -160,7 +163,7 @@ function handlePluginEnter(action) {
   if (action.type === 'regex') {
     activeName.value = 'textJoint'
     router.push('textJoint')
-    proxy?.$nextTick(() => {
+    nextTick(() => {
       window.dispatchEvent(new CustomEvent('set-regex-payload', { detail: action.payload }))
     })
   }
@@ -176,7 +179,16 @@ onMounted(() => {
     window.ztools.onPluginOut(() => {})
   }
   if (navigator.userAgent.includes('uTools')) {
-    utools.onPluginEnter((action) => handlePluginEnter(action))
+    utools.onPluginEnter(({ code, type, payload, option, from }) => {
+      console.log("用户进入插件应用", code, type, payload);
+      if (type === 'regex') {
+        activeName.value = 'textJoint'
+        router.push('textJoint')
+        nextTick(() => {
+          window.dispatchEvent(new CustomEvent('set-regex-payload', { detail: payload }))
+        })
+      }
+    });
   }
 })
 

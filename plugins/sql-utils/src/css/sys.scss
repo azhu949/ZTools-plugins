@@ -92,6 +92,10 @@
   background-color: #a8a8a8;
 }
 
+.code-editor .cm-scroller::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;

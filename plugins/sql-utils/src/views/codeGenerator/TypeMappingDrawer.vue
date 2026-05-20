@@ -5,7 +5,12 @@
         <div class="mapping-header">
           <n-space :size="8">
             <n-button type="primary" size="small" @click="addMapping">添加映射</n-button>
-            <n-button size="small" @click="resetToDefault">恢复默认</n-button>
+            <n-popconfirm @positive-click="resetToDefault">
+              <template #trigger>
+                <n-button size="small">恢复默认</n-button>
+              </template>
+              确定要恢复默认映射吗？这将覆盖所有自定义配置。
+            </n-popconfirm>
           </n-space>
         </div>
 
@@ -35,7 +40,12 @@
                   <n-button v-if="!row.editing" type="primary" size="tiny" @click="editMapping($rowIndex)">编辑</n-button>
                   <n-button v-if="row.editing" type="success" size="tiny" @click="saveMapping($rowIndex)">保存</n-button>
                   <n-button v-if="row.editing" size="tiny" @click="cancelEdit($rowIndex)">取消</n-button>
-                  <n-button v-if="!row.editing" type="error" size="tiny" @click="deleteMapping($rowIndex)">删除</n-button>
+                  <n-popconfirm v-if="!row.editing" @positive-click="deleteMapping($rowIndex)">
+                    <template #trigger>
+                      <n-button type="error" size="tiny">删除</n-button>
+                    </template>
+                    确定要删除这个映射吗？
+                  </n-popconfirm>
                 </n-space>
               </template>
             </vxe-column>
@@ -136,19 +146,15 @@ function cancelEdit(index) {
 }
 
 function deleteMapping(index) {
-  if (window.confirm('确定要删除这个映射吗？')) {
-    typeMappings.value.splice(index, 1)
-    NotifyUtil.success('删除成功')
-    saveCurrentMappings()
-  }
+  typeMappings.value.splice(index, 1)
+  NotifyUtil.success('删除成功')
+  saveCurrentMappings()
 }
 
 function resetToDefault() {
-  if (window.confirm('确定要恢复默认映射吗？这将覆盖所有自定义配置。')) {
-    typeMappings.value = [...defaultTypeMappings]
-    saveCurrentMappings()
-    NotifyUtil.success('已恢复默认映射')
-  }
+  typeMappings.value = [...defaultTypeMappings]
+  saveCurrentMappings()
+  NotifyUtil.success('已恢复默认映射')
 }
 
 function saveCurrentMappings() {
