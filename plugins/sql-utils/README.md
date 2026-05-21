@@ -78,14 +78,15 @@
 
 ## 🛠 技术栈
 
-- **前端框架：** Vue.js 2.7
-- **UI 组件库：** Element UI、VXE Table
-- **代码编辑器：** CodeMirror
+- **前端框架：** Vue 3
+- **UI 组件库：** Naive UI、VXE Table
+- **代码编辑器：** CodeMirror 6 (vue-codemirror)
 - **模板引擎：** Handlebars.js
 - **数据模拟：** Faker.js (@faker-js/faker)
 - **日期处理：** Day.js
 - **SQL 解析：** sql-ddl-to-json-schema
-- **构建工具：** Vue CLI
+- **Excel 解析：** xlsx-fire (WASM)
+- **构建工具：** Vite
 
 ## 🔧 开发环境搭建
 
@@ -100,7 +101,7 @@ cd sql-utils
 npm install
 
 # 启动开发服务器
-npm run serve
+npm run dev
 
 # 构建生产版本
 npm run build
@@ -110,17 +111,20 @@ npm run build
 
 主要的第三方库和工具：
 
+- [Vue 3](https://vuejs.org/) - 渐进式 JavaScript 框架
+- [Naive UI](https://www.naiveui.com/) - Vue 3 组件库
+- [VXE Table](https://vxetable.cn/) - 高性能表格组件
 - [@faker-js/faker](https://github.com/faker-js/faker) - 生成各种模拟数据
 - [dayjs](https://day.js.org/) - 日期时间处理库
 - [sql-ddl-to-json-schema](https://github.com/Luidog/sql-ddl-to-json-schema) - SQL DDL 解析工具
-- [vue-codemirror](https://github.surmon.me/vue-codemirror/) - 代码编辑器组件
+- [vue-codemirror](https://github.surmon.me/vue-codemirror/) - CodeMirror 6 代码编辑器组件
 - [handlebars](https://handlebarsjs.com/) - 模板引擎
-- [element-ui](https://element.eleme.io/) - Vue.js UI 组件库
-- [vxe-table](https://vxetable.cn/) - 表格组件
+- [xlsx-fire](https://github.com/nickelpack/xlsx-fire) - 基于 WASM 的 Excel 解析库
+- [Vite](https://vite.dev/) - 下一代前端构建工具
 
 ## 📝 待开发功能
 
-- 代码编辑样式优化
+- 生成测试数据：DDL 导入字段
 
 ## 🤝 贡献指南
 

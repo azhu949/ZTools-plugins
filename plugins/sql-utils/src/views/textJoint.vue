@@ -1,6 +1,7 @@
 <template>
   <div class="app">
-    <n-space :size="8" :wrap="true" style="margin-bottom: 10px">
+    <n-space :size="8" :wrap="true" align="center" style="margin-bottom: 10px">
+      <n-checkbox v-model:checked="joinWithCommaConfig.mergeToSingleLine" size="small">自动合一行</n-checkbox>
       <n-button type="primary" size="small" @click="removeDuplicates">去重</n-button>
       <n-button type="primary" size="small" @click="removeEmptyLines">去空行</n-button>
       <n-button type="primary" size="small" @click="addQuotes('single')">前后加'单引号'</n-button>
@@ -35,17 +36,6 @@
               点击选择分隔符
             </n-tooltip>
             {{ getSeparatorDisplayName() }}拼接
-            <n-tooltip trigger="hover" placement="bottom">
-              <template #trigger>
-                <n-icon
-                  class="comma-join-icon"
-                  @click.stop="toggleMergeMode"
-                >
-                  <Icon :icon="joinWithCommaConfig.mergeToSingleLine ? 'icon-park-outline:align-text-middle' : 'icon-park-outline:align-text-center'" />
-                </n-icon>
-              </template>
-              {{ joinWithCommaConfig.mergeToSingleLine ? '单行模式（点击切换）' : '多行模式（点击切换）' }}
-            </n-tooltip>
           </n-button>
         </template>
         <div class="separator-selector" :style="{
@@ -83,7 +73,6 @@
         </div>
       </n-popover>
       <n-button type="primary" size="small" @click="convertToJson">转JSON</n-button>
-      <n-button type="primary" size="small" @click="mergeLines">合一行</n-button>
     </n-space>
 
     <div class="textArea">
@@ -99,7 +88,6 @@
 <script setup>
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useThemeVars } from 'naive-ui'
-import { Icon } from '@iconify/vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import NotifyUtil from '@/utils/notifyUtil.js'
 
@@ -137,8 +125,8 @@ watch(() => joinWithCommaConfig.separator, (newVal) => {
   localStorage.setItem('separator', newVal)
 })
 
-function handleUtoolsRegexPayload(payload) {
-  text.value = payload
+function handleUtoolsRegexPayload(event) {
+  text.value = event.detail
 }
 
 function initSelectedSeparator() {
@@ -156,14 +144,17 @@ function togglePopover() {
   popoverVisible.value = !popoverVisible.value
 }
 
-function toggleMergeMode() {
-  joinWithCommaConfig.mergeToSingleLine = !joinWithCommaConfig.mergeToSingleLine
+function applyMergeMode() {
+  if (joinWithCommaConfig.mergeToSingleLine) {
+    text.value = text.value.replace(/\n/g, '')
+  }
 }
 
 function removeDuplicates() {
   const lines = text.value.split('\n')
   const uniqueLines = [...new Set(lines)]
   text.value = uniqueLines.join('\n')
+  applyMergeMode()
   copyText()
 }
 
@@ -175,6 +166,7 @@ function addQuotes(type) {
     line !== '' ? `${quote}${line}${quote},` : `${quote}${quote},`
   )
   text.value = updatedLines.join('\n').replace(/,\s*$/, '')
+  applyMergeMode()
   copyText()
 }
 
@@ -192,11 +184,8 @@ function joinWithSeparator() {
     return line.trim() ? (idx !== lastNonEmptyIdx ? line + separator : line) : line
   }).join('\n')
 
-  if (joinWithCommaConfig.mergeToSingleLine) {
-    result = result.replace(/\n/g, '')
-  }
-
   text.value = result
+  applyMergeMode()
   copyText()
 }
 
@@ -244,11 +233,7 @@ function getSeparatorSymbol() {
 function convertToJson() {
   if (!text.value) return
   text.value = JSON.stringify(text.value.split('\n').filter(line => line !== ''))
-  copyText()
-}
-
-function mergeLines() {
-  text.value = text.value.replace(/\n/g, '')
+  applyMergeMode()
   copyText()
 }
 
@@ -256,6 +241,7 @@ function removeEmptyLines() {
   const lines = text.value.split('\n')
   const nonEmptyLines = lines.filter(line => line.trim() !== '')
   text.value = nonEmptyLines.join('\n')
+  applyMergeMode()
   copyText()
 }
 
@@ -296,15 +282,6 @@ onBeforeUnmount(() => {
   display: flex;
   overflow: hidden;
   min-height: 0;
-}
-
-.comma-join-icon {
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform-origin: center;
-}
-
-.comma-join-icon:hover {
-  transform: scale(1.5);
 }
 
 .separator-selector {

@@ -34,6 +34,7 @@
             height="100%"
             :column-config="{ drag: true }"
             :seq-config="{ startIndex: (currentPage - 1) * pageSize }"
+            @column-dragend="handleColumnDragend"
           >
             <vxe-column type="seq" title="#" width="50" fixed="left"></vxe-column>
             <vxe-column
@@ -134,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, getCurrentInstance } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import NotifyUtil from '@/utils/notifyUtil.js'
@@ -434,17 +435,13 @@ function generateUpdateSql() {
     columns.value.forEach(col => {
       const key = col.prop
       if (!primaryKey.includes(key)) {
-        if (isEmptyToNull(key) && (row[key] === '' || row[key] === undefined || row[key] === null)) {
-          sql += key + "=NULL, "
-        } else {
-          sql += key + "=" + toSqlString(row[key]) + ", "
-        }
+        sql += key + "=" + toSqlValue(row[key], isEmptyToNull(key)) + ", "
       }
     })
     sql = sql.slice(0, -2)
     sql += " WHERE "
     primaryKey.forEach(key => {
-      sql += key + "=" + toSqlString(row[key]) + " AND "
+      sql += key + "=" + toSqlValue(row[key], isEmptyToNull(key)) + " AND "
     })
     sql = sql.slice(0, -4) + ";"
     sqlStatements.push(sql)
@@ -457,6 +454,23 @@ function copyText() {
   codeEditorRef.value?.selectAll()
   navigator.clipboard.writeText(sqlStr.value)
   NotifyUtil.success('复制成功')
+}
+
+function handleColumnDragend() {
+  const $table = dataTableRef.value
+  if (!$table) return
+  const { collectColumn } = $table.getTableColumn()
+  const fieldNames = collectColumn
+    .filter(col => col.field)
+    .map(col => col.field)
+  const reordered = []
+  fieldNames.forEach(name => {
+    const col = columns.value.find(c => c.prop === name)
+    if (col) reordered.push(col)
+  })
+  if (reordered.length === columns.value.length) {
+    columns.value.splice(0, columns.value.length, ...reordered)
+  }
 }
 </script>
 

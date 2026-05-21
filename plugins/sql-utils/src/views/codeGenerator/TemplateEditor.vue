@@ -21,7 +21,7 @@
           <div class="help-section">
             <div class="section-title">可用变量说明</div>
             <div class="variables-table-container">
-              <vxe-table :data="templateVariables" border height="100%" size="mini" row-id="id" :tree-config="{ children: 'children', expandAll: true }">
+              <vxe-table :data="templateVariables" border height="100%" size="mini" :row-config="{ keyField: 'id' }" :tree-config="{ childrenField: 'children', expandAll: true }">
                 <vxe-column field="variable" title="变量名" tree-node />
                 <vxe-column field="description" title="说明" />
                 <vxe-column field="type" title="类型" width="80" />

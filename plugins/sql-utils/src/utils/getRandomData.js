@@ -97,31 +97,26 @@ export function getIdCard() {
 }
 
 
-/**
- * 获取随机图片url
- * @returns {string}
- */
+let _cachedImgUrls = null
+
+async function loadImgUrls() {
+    if (_cachedImgUrls) return _cachedImgUrls
+    const module = await import('@/utils/imgUrls.json')
+    _cachedImgUrls = module.default
+    return _cachedImgUrls
+}
+
 export function getImageUrl() {
-    // imgUrlList.js 配置好的图片url集合（1933个）
-    return commonConsts.imgUrls[Math.floor(Math.random() * commonConsts.imgUrls.length)];
+    if (_cachedImgUrls) {
+        return _cachedImgUrls[Math.floor(Math.random() * _cachedImgUrls.length)]
+    }
+    loadImgUrls()
+    return ''
+}
 
-    // picsum API，图片打开速度会比较慢
-    // const seed = getStr(8);
-    // const width = getNumber(200, 800);
-    // const height = getNumber(200, 800);
-    // return `https://picsum.photos/seed/${seed}/${width}/${height}.jpg`;
-
-    // 接口盒子
-    // const params = {
-    //     id: '10002227',
-    //     key: '044b6ddc5f42a1f8202632226158091f',
-    //     type: '1',
-    //     imgtype: '1',
-    // }
-    // return axios.get('https://cn.apihz.cn/api/img/apihzimgbz.php', { params })
-    //     .then(res => {
-    //         return res.msg
-    //     })
+export async function getImageUrlAsync() {
+    const urls = await loadImgUrls()
+    return urls[Math.floor(Math.random() * urls.length)]
 }
 
 
@@ -348,10 +343,10 @@ export function getArea() {
 }
 
 /**
- * 获取随机地址
- * @returns {string}
+ * 获取随机位置上下文
+ * @returns {{province: string, city: string, area: string, address: string}}
  */
-export function getAddress() {
+export function getLocationContext() {
     try {
         // 生成省市区
         const getRandom = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -373,12 +368,33 @@ export function getAddress() {
         const addressType = getRandom(Object.keys(commonConsts.addressGenerators));
         const road = `${area.name === '市辖区' ? '' : area.name}${getRandom(commonConsts.addressConfig.roadNames)}`;
         const detail = commonConsts.addressGenerators[addressType]();
+        const cityName = city.name === '市辖区' || city.name === '县' ? province.name : city.name;
+        const addressCityPart = city.name === '市辖区' || city.name === '县' ? '' : city.name;
+        const address = `${province.name}${addressCityPart}${road}${detail}`;
 
-        return `${province.name}${city.name === '市辖区' ? '' : city.name}${road}${detail}`;
+        return {
+            province: province.name,
+            city: cityName,
+            area: area.name,
+            address
+        };
     } catch (e) {
-        console.error('生成地址失败：', e);
-        return '地址生成失败';
+        console.error('生成位置上下文失败：', e);
+        return {
+            province: '',
+            city: '',
+            area: '',
+            address: '地址生成失败'
+        };
     }
+}
+
+/**
+ * 获取随机地址
+ * @returns {string}
+ */
+export function getAddress() {
+    return getLocationContext().address;
 }
 
 /**
