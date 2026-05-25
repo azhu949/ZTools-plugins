@@ -41,7 +41,8 @@ export function prettyPath(p: string): string {
 export function normalizeId(p: string, opts: { isRemote?: boolean } = {}): string {
   if (opts.isRemote) return p;
   const normalized = path.normalize(p);
-  // Windows is case-insensitive; POSIX paths are case-sensitive — lowercasing would
-  // collide distinct files like /home/Alice/x vs /home/alice/x.
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+  // Windows + macOS 默认大小写不敏感；POSIX (Linux) 大小写敏感，不能 lowercase 否则会 collide
+  // /home/Alice/x 与 /home/alice/x 这样的不同文件。
+  const caseInsensitive = process.platform === 'win32' || process.platform === 'darwin';
+  return caseInsensitive ? normalized.toLowerCase() : normalized;
 }

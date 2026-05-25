@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createWorkspaceStorageProbe = createWorkspaceStorageProbe;
 const fs = __importStar(require("fs"));
+const fs_1 = require("fs");
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
 function defaultRoot() {
@@ -47,6 +48,36 @@ function defaultRoot() {
     }
     return path.join(os.homedir(), '.config', 'Code', 'User', 'workspaceStorage');
 }
+async function readOneDir(root, hash) {
+    const dir = path.join(root, hash);
+    try {
+        const stat = await fs_1.promises.stat(dir);
+        if (!stat.isDirectory())
+            return null;
+        const wsJsonPath = path.join(dir, 'workspace.json');
+        let text;
+        try {
+            text = await fs_1.promises.readFile(wsJsonPath, 'utf-8');
+        }
+        catch {
+            return null;
+        }
+        const parsed = JSON.parse(text);
+        let raw = null;
+        if (parsed.folder) {
+            raw = { folderUri: parsed.folder };
+        }
+        else if (parsed.workspace) {
+            raw = { workspace: { id: hash, configPath: parsed.workspace } };
+        }
+        if (!raw)
+            return null;
+        return { hash, raw, mtimeMs: stat.mtimeMs };
+    }
+    catch {
+        return null;
+    }
+}
 function createWorkspaceStorageProbe(rootOverride) {
     const root = rootOverride ?? defaultRoot();
     return {
@@ -56,39 +87,13 @@ function createWorkspaceStorageProbe(rootOverride) {
                 return null;
             let dirs;
             try {
-                dirs = fs.readdirSync(root);
+                dirs = await fs_1.promises.readdir(root);
             }
             catch {
                 return null;
             }
-            const collected = [];
-            for (const hash of dirs) {
-                const dir = path.join(root, hash);
-                const wsJson = path.join(dir, 'workspace.json');
-                try {
-                    if (!fs.statSync(dir).isDirectory())
-                        continue;
-                    if (!fs.existsSync(wsJson))
-                        continue;
-                    const text = fs.readFileSync(wsJson, 'utf-8');
-                    const parsed = JSON.parse(text);
-                    let raw = null;
-                    if (parsed.folder) {
-                        raw = { folderUri: parsed.folder };
-                    }
-                    else if (parsed.workspace) {
-                        raw = { workspace: { id: hash, configPath: parsed.workspace } };
-                    }
-                    if (!raw)
-                        continue;
-                    const mtimeMs = fs.statSync(dir).mtimeMs;
-                    collected.push({ hash, raw, mtimeMs });
-                }
-                catch {
-                    // skip malformed dir/file silently
-                }
-            }
-            // most recently used first
+            const results = await Promise.all(dirs.map(h => readOneDir(root, h)));
+            const collected = results.filter((e) => e !== null);
             collected.sort((a, b) => b.mtimeMs - a.mtimeMs);
             return collected.map(c => c.raw);
         },

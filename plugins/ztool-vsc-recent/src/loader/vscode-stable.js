@@ -42,7 +42,7 @@ const state_vscdb_probe_1 = require("./state-vscdb-probe");
 const storage_json_probe_1 = require("./storage-json-probe");
 const workspace_storage_probe_1 = require("./workspace-storage-probe");
 /**
- * 默认 probe 顺序：workspaceStorage 优先（完整列表，mtime 排序），state.vscdb 次之，storage.json 兜底。
+ * 默认 probe 顺序：workspaceStorage 主, state.vscdb 次, storage.json 兜底。
  */
 function defaultProbes() {
     return [
@@ -67,37 +67,40 @@ async function loadRecentDetailed(probes = defaultProbes(), existsCheck = fs.exi
                 allRaw.push(...entries);
         }
         catch (e) {
-            diag.probes.push({ name: p.name, rawCount: null, error: e instanceof Error ? e.message : String(e) });
+            diag.probes.push({
+                name: p.name,
+                rawCount: null,
+                error: e instanceof Error ? e.message : String(e),
+            });
         }
     }
     const mapped = (0, uri_mapper_1.mapEntries)(allRaw);
     diag.mappedCount = mapped.length;
     if (mapped.length > 0)
         diag.examplePath = mapped[0].rawPath;
+    // dedupe by id, preserve first-seen order
     const seen = new Set();
-    const out = [];
+    const candidates = [];
     for (const item of mapped) {
         if (seen.has(item.id))
             continue;
         seen.add(item.id);
-        if (item.kind === 'remote') {
-            out.push({ ...item, exists: true });
-            continue;
+        candidates.push(item);
+    }
+    // parallel existence checks (remote always passes)
+    const existsResults = await Promise.all(candidates.map(item => item.kind === 'remote' ? Promise.resolve(true) : Promise.resolve(existsCheck(item.rawPath))));
+    const out = [];
+    for (let i = 0; i < candidates.length; i++) {
+        if (existsResults[i]) {
+            out.push({ ...candidates[i], exists: true });
         }
-        if (!existsCheck(item.rawPath)) {
+        else {
             diag.droppedNonexistent++;
-            continue;
         }
-        out.push({ ...item, exists: true });
     }
     diag.finalCount = out.length;
     return { items: out, diag };
 }
-/**
- * 顺序读取所有 probe，合并 + 按 id 去重（保留首次出现）+ 本地路径存在性过滤。
- *
- * `existsCheck` 默认用 fs.existsSync；测试时可注入自定义谓词。
- */
 async function loadRecent(probes = defaultProbes(), existsCheck = fs.existsSync) {
     const { items } = await loadRecentDetailed(probes, existsCheck);
     return items;
