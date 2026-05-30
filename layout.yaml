@@ -8,9 +8,9 @@ layout:
     title: 最新发布
     plugins:
       - ztools-developer-plugin
+      - zosenlink-tunnel
       - clipboard
       - ai-helper
-      - shortcut-capture
   - type: navigation
     title: 开始探索
     categories:
