@@ -63,6 +63,7 @@ function applyBlockSize() {
 
 let resizeTimer: ReturnType<typeof setTimeout> | null = null
 function onResize() {
+  if (!props.active) return
   if (resizeTimer) clearTimeout(resizeTimer)
   resizeTimer = setTimeout(applyBlockSize, 150)
 }
@@ -106,6 +107,7 @@ watch(() => props.themeName, (newTheme) => {
 // Start/resume game loop when the screen becomes visible
 watch(() => props.active, (active) => {
   if (active) {
+    applyBlockSize() // Ensure correct canvas size after hidden resize guard skips
     if (props.gameId > lastStartedGameId.value) {
       // New game requested (gameId incremented from parent)
       lastStartedGameId.value = props.gameId
@@ -132,10 +134,11 @@ onUnmounted(() => {
 // Game keyboard controls
 function onGameKeyDown(e: KeyboardEvent) {
   const b = props.keyBindings
-  const key = e.key
+  const key = e.key.toLowerCase()
+  const matchBinding = (binding: string) => key === binding.toLowerCase()
 
   // Pause key toggles pause
-  if (key === b.pause) {
+  if (matchBinding(b.pause)) {
     e.preventDefault()
     session.togglePause()
     return
@@ -147,14 +150,14 @@ function onGameKeyDown(e: KeyboardEvent) {
   const piece = engine.getCurrentPiece()
   if (!piece) return
 
-  if (key === b.left) { e.preventDefault(); piece.moveLeft() }
-  else if (key === b.right) { e.preventDefault(); piece.moveRight() }
-  else if (key === b.down) {
+  if (matchBinding(b.left)) { e.preventDefault(); piece.moveLeft() }
+  else if (matchBinding(b.right)) { e.preventDefault(); piece.moveRight() }
+  else if (matchBinding(b.down)) {
     e.preventDefault()
     if (!piece.moveDown()) piece.lock()
   }
-  else if (key === b.rotate) { e.preventDefault(); piece.rotate() }
-  else if (key === b.drop) { e.preventDefault(); piece.hardDrop() }
+  else if (matchBinding(b.rotate)) { e.preventDefault(); piece.rotate() }
+  else if (matchBinding(b.drop)) { e.preventDefault(); piece.hardDrop() }
   else return
 
   engine.draw()

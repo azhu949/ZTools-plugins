@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useStorage } from '../../composables/useStorage'
 import { setThemeName } from '../engine'
 import type { ThemeName } from '../themes'
@@ -17,17 +17,22 @@ export function useTheme() {
   }
 
   function setTheme(name: ThemeName) {
+    document.body.classList.remove('theme-' + currentTheme.value)
     currentTheme.value = name
-    document.body.className = 'theme-' + name
+    document.body.classList.add('theme-' + name)
     setItem(STORAGE_KEY, name)
     setThemeName(name)
   }
 
   // Initialize
   loadSavedTheme()
-  // Apply initial theme to body
-  document.body.className = 'theme-' + currentTheme.value
+  // Apply initial theme to body safely (preserve host app classes)
+  document.body.classList.add('theme-' + currentTheme.value)
   setThemeName(currentTheme.value)
+
+  onUnmounted(() => {
+    document.body.classList.remove('theme-' + currentTheme.value)
+  })
 
   return {
     currentTheme,
