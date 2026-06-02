@@ -49,6 +49,7 @@ import {
   pointToImageCoordinates,
   type Rect
 } from "./crop-geometry";
+import { basename, shortPath } from "./path-display";
 
 const modules: Array<{ id: ModuleId; label: string; icon: typeof FileImage }> = [
   { id: "compress", label: "压缩", icon: ImageDown },
@@ -1153,17 +1154,6 @@ function Segmented({
       ))}
     </div>
   );
-}
-
-function basename(filePath: string) {
-  return filePath.split("/").pop() ?? filePath;
-}
-
-function shortPath(filePath: string) {
-  if (!filePath) return "未选择";
-  const parts = filePath.split("/").filter(Boolean);
-  if (parts.length <= 2) return filePath;
-  return `.../${parts.slice(-2).join("/")}`;
 }
 
 function notify(message: string) {

@@ -18,13 +18,15 @@ export function isPdfPath(filePath: string): boolean {
 export async function discoverFiles(paths: string[]): Promise<SourceFile[]> {
   const discovered: SourceFile[] = [];
   const seen = new Set<string>();
+  const visitedDirectories = new Set<string>();
 
   for (const itemPath of paths) {
     const resolved = path.resolve(itemPath);
-    const files = await walk(resolved);
+    const files = await walk(resolved, visitedDirectories);
     for (const file of files) {
-      if (seen.has(file.path)) continue;
-      seen.add(file.path);
+      const realPath = await fs.realpath(file.path).catch(() => file.path);
+      if (seen.has(realPath)) continue;
+      seen.add(realPath);
       discovered.push(file);
     }
   }
@@ -32,16 +34,19 @@ export async function discoverFiles(paths: string[]): Promise<SourceFile[]> {
   return discovered;
 }
 
-async function walk(targetPath: string): Promise<SourceFile[]> {
-  const stat = await fs.stat(targetPath).catch(() => null);
+async function walk(targetPath: string, visitedDirectories: Set<string>): Promise<SourceFile[]> {
+  const realPath = await fs.realpath(targetPath).catch(() => targetPath);
+  const stat = await fs.stat(realPath).catch(() => null);
   if (!stat) return [];
 
   if (stat.isDirectory()) {
+    if (visitedDirectories.has(realPath)) return [];
     if (excludedDirectories.has(path.basename(targetPath))) return [];
+    visitedDirectories.add(realPath);
     const children = await fs.readdir(targetPath).catch(() => [] as string[]);
     const all: SourceFile[] = [];
     for (const child of children) {
-      all.push(...(await walk(path.join(targetPath, child))));
+      all.push(...(await walk(path.join(targetPath, child), visitedDirectories)));
     }
     return all;
   }

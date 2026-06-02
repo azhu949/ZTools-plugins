@@ -29,6 +29,26 @@ async function makeImage(filePath: string, width: number, height: number, color:
     .toFile(filePath);
 }
 
+async function makeTwoColorImage(filePath: string) {
+  await sharp({
+    create: {
+      width: 2,
+      height: 1,
+      channels: 4,
+      background: "#00000000"
+    }
+  })
+    .composite([
+      {
+        input: Buffer.from(
+          '<svg width="2" height="1" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="#ff0000"/><rect x="1" width="1" height="1" fill="#00ff00"/></svg>'
+        )
+      }
+    ])
+    .png()
+    .toFile(filePath);
+}
+
 async function makeHeif(filePath: string, width: number, height: number, color: string) {
   await sharp({
     create: {
@@ -316,5 +336,30 @@ describe("offline processing engine", () => {
     const metadata = await sharp(output, { animated: true }).metadata();
     expect(metadata.format).toBe("gif");
     expect(metadata.pages).toBe(2);
+  });
+
+  it("preserves GIF frame colors when quantizing raw RGBA pixels", async () => {
+    const dir = await makeTempDir();
+    const first = path.join(dir, "colors.png");
+    const second = path.join(dir, "colors2.png");
+    const output = path.join(dir, "colors.gif");
+    await makeTwoColorImage(first);
+    await makeTwoColorImage(second);
+
+    await createGif([first, second], output, {
+      width: 2,
+      height: 1,
+      delayMs: 120,
+      loop: 0
+    });
+
+    const pixels = await sharp(output, { animated: true })
+      .extract({ left: 0, top: 0, width: 2, height: 1 })
+      .removeAlpha()
+      .raw()
+      .toBuffer();
+
+    expect([...pixels.slice(0, 3)]).toEqual([255, 0, 0]);
+    expect([...pixels.slice(3, 6)]).toEqual([0, 255, 0]);
   });
 });

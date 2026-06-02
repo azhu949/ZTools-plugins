@@ -338,8 +338,7 @@ async function processOne(
 
     const format = outputFormat(settings, inputPath);
     image = applyOutputFormat(image, format, settings);
-    const outputBuffer = await image.toBuffer();
-    const outMetadata = await sharp(outputBuffer).metadata();
+    const { data: outputBuffer, info: outMetadata } = await image.toBuffer({ resolveWithObject: true });
     const outputPath = buildOutputPath({
       inputPath,
       outputDirectory: settings.output.directory,
@@ -526,13 +525,15 @@ export async function createGif(
     const pixels = new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.byteLength);
     const palette = quantize(pixels, 256, { format: "rgba4444", oneBitAlpha: 127 });
     const indexed = applyPalette(pixels, palette, "rgba4444");
+    const transparentIndex = palette.findIndex((color) => color[3] <= 127);
+    const hasTransparency = transparentIndex >= 0;
     encoder.writeFrame(indexed, width, height, {
       palette,
       delay: options.delayMs,
       repeat: index === 0 ? options.loop : -1,
-      transparent: true,
-      transparentIndex: 0,
-      dispose: 2
+      transparent: hasTransparency,
+      transparentIndex,
+      dispose: hasTransparency ? 2 : 0
     });
   }
 

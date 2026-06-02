@@ -76,4 +76,18 @@ describe("file discovery", () => {
       readdir.mockRestore();
     }
   });
+
+  it("does not revisit circular symlinked directories", async () => {
+    const dir = await makeTempDir();
+    const readable = path.join(dir, "readable.png");
+    const nested = path.join(dir, "nested");
+    const loop = path.join(nested, "loop");
+    await fs.mkdir(nested);
+    await makeImage(readable);
+    await fs.symlink(dir, loop, "dir");
+
+    const files = await discoverFiles([dir]);
+
+    expect(files.map((file) => file.path)).toEqual([readable]);
+  }, 2000);
 });
