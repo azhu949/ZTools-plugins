@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 import type { ImageFormat, OutputPathInput } from "../shared/types";
 
 export function normalizeExtension(format: ImageFormat | string): string {
