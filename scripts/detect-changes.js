@@ -115,7 +115,8 @@ console.log(`  - 变动插件: ${changedPlugins.join(', ')}`);
 const output = {
   hasChanges: true,
   releaseVersion,
-  changedPlugins: changedPlugins
+  changedPlugins: changedPlugins,
+  buildAll: BUILD_ALL
 };
 
 // 确保release目录存在

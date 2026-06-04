@@ -7,10 +7,10 @@ layout:
   - type: fixed
     title: 最新发布
     plugins:
+      - ztools-developer-plugin
+      - zosenlink-tunnel
       - clipboard
-      - bookmarks
-      - chrome-history
-      - screen-recorder
+      - ai-helper
   - type: navigation
     title: 开始探索
     categories:
