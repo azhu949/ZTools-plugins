@@ -111,6 +111,7 @@ const pendingQueueThumbnailPatches = new Map()
 const LAUNCH_INPUT_RETRY_INTERVAL_MS = 1200
 const LAUNCH_INPUT_RETRY_WINDOW_MS = 12000
 const LAUNCH_INPUT_POST_IMPORT_RETRY_WINDOW_MS = 12000
+const LARGE_MERGE_IMAGE_PIXEL_LIMIT = 268402689
 const rootMarkupCache = {
   sideNav: '',
   topbar: '',
@@ -2797,6 +2798,10 @@ function attachLaunchSubscription() {
         includeCopiedFiles: true,
         requirePending: true,
       })
+      if (!assets?.length) {
+        startLaunchInputRetryWindow('subscription-empty', LAUNCH_INPUT_RETRY_WINDOW_MS)
+        return
+      }
       appendImportedAssets(assets, '已带入')
     } catch (error) {
       notify({ type: 'error', message: error?.message || '读取启动图片失败。' })
@@ -3511,6 +3516,12 @@ function attachGlobalEvents() {
       return
     }
 
+    if (action === 'confirm-large-merge-image-process') {
+      closeConfirmDialog()
+      await processCurrentTool(false, { allowLargeMergeImage: true })
+      return
+    }
+
     if (action === 'save-preset') {
       const toolId = target.dataset.toolId
       await savePreset(toolId, getState().configs[toolId])
@@ -3684,10 +3695,7 @@ function attachGlobalEvents() {
     }
 
     if (action === 'change-rotate-preset-input') {
-      const dialog = getState().presetDialog
-      if (dialog?.mode === 'rotate-presets') {
-        dialog.angleInput = target.value
-      }
+      updateRotatePresetDialog({ angleInput: target.value })
       return
     }
 
@@ -4248,7 +4256,7 @@ async function previewAsset(assetId, skipResizePercentConfirm = false) {
   }
 }
 
-async function processCurrentTool(skipResizePercentConfirm = false) {
+async function processCurrentTool(skipResizePercentConfirm = false, runOptions = {}) {
   const state = getState()
   const tool = TOOL_MAP[state.activeTool]
 
@@ -4279,6 +4287,13 @@ async function processCurrentTool(skipResizePercentConfirm = false) {
 
   try {
     const assets = getAssetsForToolFlow(tool.id, state.assets, state.configs['manual-crop'])
+    if (
+      tool.id === 'merge-image'
+      && !runOptions.allowLargeMergeImage
+      && openLargeMergeImageConfirm(assets)
+    ) {
+      return
+    }
     const runner = getToolRunner(tool.id)
     const destinationPath = state.destinationPath || state.settings.defaultSavePath || ''
     const preferredRunFolderName = PREVIEW_SAVE_TOOLS.has(tool.id)
@@ -4365,7 +4380,10 @@ async function processCurrentTool(skipResizePercentConfirm = false) {
               state.configs[tool.id],
               pendingAssets,
               destinationPath,
-              preferredRunFolderName ? { preferredRunFolderName } : {},
+              {
+                ...(preferredRunFolderName ? { preferredRunFolderName } : {}),
+                ...(tool.id === 'merge-image' && runOptions.allowLargeMergeImage ? { allowLargeCanvas: true } : {}),
+              },
             )
           : null
         return { materializedResult, executedResult }
@@ -4719,6 +4737,73 @@ function openResizePercentConfirm(mode, assetId = '') {
     confirmLabel: '我确定',
     confirmAction: mode === 'preview' ? 'confirm-dangerous-resize-preview' : 'confirm-dangerous-resize-process',
     assetId,
+  })
+  return true
+}
+
+function estimateMergeImageCanvas(config = {}, assets = []) {
+  const sourceAssets = Array.isArray(assets) ? assets : []
+  if (!sourceAssets.length) return null
+  const isVertical = config.direction !== 'horizontal'
+  const spacing = Math.max(0, Number(config.spacing) || 0)
+  const preventUpscale = Boolean(config.preventUpscale)
+  const targetSpan = config.useMaxAssetSize
+    ? Math.max(1, ...sourceAssets.map((asset) => Math.max(0, Number(isVertical ? asset?.width : asset?.height) || 0)))
+    : Math.max(1, Number(config.pageWidth) || 1)
+  if (!(targetSpan > 0)) return null
+
+  let contentWidth = 0
+  let contentHeight = 0
+  for (const asset of sourceAssets) {
+    const sourceWidth = Math.max(0, Number(asset?.width) || 0)
+    const sourceHeight = Math.max(0, Number(asset?.height) || 0)
+    if (!(sourceWidth > 0 && sourceHeight > 0)) return null
+    let width = sourceWidth
+    let height = sourceHeight
+    const keepsOriginalSize = isVertical
+      ? ((preventUpscale && sourceWidth <= targetSpan) || sourceWidth === targetSpan)
+      : ((preventUpscale && sourceHeight <= targetSpan) || sourceHeight === targetSpan)
+    if (!keepsOriginalSize) {
+      const scale = isVertical
+        ? (preventUpscale ? Math.min(1, targetSpan / sourceWidth) : (targetSpan / sourceWidth))
+        : (preventUpscale ? Math.min(1, targetSpan / sourceHeight) : (targetSpan / sourceHeight))
+      width = Math.max(1, Math.round(sourceWidth * scale))
+      height = Math.max(1, Math.round(sourceHeight * scale))
+    }
+    if (isVertical) {
+      contentWidth = Math.max(contentWidth, width)
+      contentHeight += height
+    } else {
+      contentWidth += width
+      contentHeight = Math.max(contentHeight, height)
+    }
+  }
+
+  const spacingTotal = spacing * Math.max(0, sourceAssets.length - 1)
+  const width = isVertical ? contentWidth : contentWidth + spacingTotal
+  const height = isVertical ? contentHeight + spacingTotal : contentHeight
+  return {
+    width,
+    height,
+    pixels: width * height,
+  }
+}
+
+function formatMegapixels(pixels = 0) {
+  const value = Math.max(0, Number(pixels) || 0) / 1000000
+  return `${value >= 100 ? Math.round(value) : value.toFixed(1)} MP`
+}
+
+function openLargeMergeImageConfirm(assets = []) {
+  const config = getState().configs['merge-image'] || {}
+  const estimate = estimateMergeImageCanvas(config, assets)
+  if (!estimate || estimate.pixels <= LARGE_MERGE_IMAGE_PIXEL_LIMIT) return false
+  openConfirmDialog({
+    title: '确认生成超大图片',
+    subtitle: `${estimate.width} × ${estimate.height}，约 ${formatMegapixels(estimate.pixels)}`,
+    message: '当前合并设置会生成非常大的图片，处理会明显变慢，可能占用大量内存并导致 ZTools 短暂卡顿。确认不是误操作后，可以继续生成。',
+    confirmLabel: '继续生成',
+    confirmAction: 'confirm-large-merge-image-process',
   })
   return true
 }

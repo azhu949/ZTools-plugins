@@ -417,6 +417,7 @@ function renderRotateConfig(config) {
     </div>
     ${renderToggleRow('自动裁切画布', '', 'rotate', 'autoCrop', config.autoCrop)}
     ${renderToggleRow('保持比例', '', 'rotate', 'keepAspectRatio', config.keepAspectRatio)}
+    ${renderToggleRow('透明背景', '旋转后空出的区域保持透明；JPEG 等不支持透明的格式会自动输出为 PNG。', 'rotate', 'transparentBackground', config.transparentBackground)}
     ${renderColorField({ label: '背景色', toolId: 'rotate', key: 'background', value: config.background || '#FFFFFF' })}
     ${renderQualityField({ toolId: 'rotate', value: Number(config.quality) || 90 })}
   `)
